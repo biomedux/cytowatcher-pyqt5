@@ -5,7 +5,9 @@ from firebase.firebase import FirebaseApplication
 import threading
 import dwf
 
-# firebase = FirebaseApplication("")
+import copy
+
+# firebase = FirebaseApplication("https://qttest0513.firebaseio.com/")
 
 class DeviceControl():
 	global firebase
@@ -17,7 +19,7 @@ class DeviceControl():
 		self.deviceState = 0
 		self.recordState = 0
 		self.pauseFlag = False
-		self.getSetup = {}
+		# self.getSetup = {}
 		self.setupData = {
 			'channels': 0,
 			'freqs': 0,
@@ -27,6 +29,7 @@ class DeviceControl():
 		}
 
 		dwf.initialize()
+		self.initFirebase()
 
 	"""
 	firebase에 접속하고 변수에 담아줌
@@ -70,22 +73,25 @@ class DeviceControl():
 			getData = firebase.get('/CONTROL', None)
 		except Exception as e:
 			print(e, type(e))
-			self.monitorCommand()
+			# self.monitorCommand()
 
-		command = getData['COMMAND']
-		deviceState = getData['DEVICESTATE']
-		recordState = getData['RECORDSTATE']
+		self.command = getData['COMMAND']
+		self.deviceState = getData['DEVICESTATE']
+		self.recordState = getData['RECORDSTATE']
+		self.pauseFlag = getData['PAUSE']
 		getSetup = getData['SETUP']
-		pauseFlag = getData['PAUSE']
 
-		if (command == 'checkchip'):
+		if (self.command == 'checkchip'):
 			result = dwf.checkchip()
 			firebase.put('/CHECKCHIP', '/', result)
 
-		elif (command == 'start'):
+		elif (self.command == 'start'):
 			print("## start command received")
+			import datetime
+			now = datetime.now()
+			print(now)
 
-		elif (command == 'stop'):
+		elif (self.command == 'stop'):
 			# 사용한거 다 초기화
 			# deviceState ready로 변경
 			# recordState off로 변경
@@ -93,14 +99,25 @@ class DeviceControl():
 
 			self.initFirebase()
 
-		elif (command == 'pause'):
+		elif (self.command == 'pause'):
 			pass
 
-		elif (command == 'unpause'):
+		elif (self.command == 'unpause'):
 			pass
 
-		elif (command == 'setup'):
-			pass
+		elif (self.command == 'setup'):
+			print("device setup")
+
+			self.setupData = copy.deepcopy(getSetup)
+			self.deviceState = 'setup'
+			firebase.put('/CONTROL', '/DEVICESTATE', self.deviceState)
+			firebase.put('/' + self.setupData['experiment_name'], '/setup', self.setupData)
+
+			print("setup data : ", setupData)
+
+		# 작업 완료후 커맨드 초기화
+		self.command = 0
+		firebase.put('/CONTROL', '/COMMAND', self.command)
 
 		threading.Timer(5, self.monitorCommand).start()
 

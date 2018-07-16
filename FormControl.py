@@ -40,6 +40,7 @@ class Form(QtWidgets.QDialog):
 
 	"""
 	Firebase의 '/CONTROL' 초기화
+	**** 여기서 해주면 안됨. 최초 1회만 실행해야함
 	"""
 	def initFirebase(self):
 		global firebase
@@ -47,14 +48,14 @@ class Form(QtWidgets.QDialog):
 		print(" ### Firebase initializing")
 		self.connectFirebase()
 
-		CONTROL = {
-			'COMMAND': 0,
-			'DEVICESTATE': 'ready',
-			'RECORDSTATE': 'off',
-			'SETUP': 0,
-			'PAUSE': False,
-		}
-		firebase.put('/CONTROL', '/', CONTROL)
+		# CONTROL = {
+		# 	'COMMAND': 0,
+		# 	'DEVICESTATE': 'ready',
+		# 	'RECORDSTATE': 'off',
+		# 	'SETUP': 0,
+		# 	'PAUSE': False,
+		# }
+		# firebase.put('/CONTROL', '/', CONTROL)
 
 		print(" ### Init complete")
 
@@ -158,7 +159,7 @@ class Form(QtWidgets.QDialog):
 	@pyqtSlot()
 	def on_setup_click(self):
 		global firebase
-
+		print("setup button clicked")
 		# 공백 검사하기.
 		# 양식(자연수 등등) 확인하기
 		period = self.ui.edit_period.text()
@@ -189,32 +190,20 @@ class Form(QtWidgets.QDialog):
 			'freqs': str(self.freqs),
 			'period': period,
 			'deadline': deadline,
-			'exp_name': name
+			'experiment_name': name
 		}
 		print(settings)
 
-		#######	180513 여기까지함 #######################
-		# 내일할
 		getData = firebase.get('/CONTROL', None)
 		tempKeys = [str(x) for x in getData.keys()]
 		print(tempKeys)
 
-		if (settings['exp_name'] in tempKeys):
+		if (settings['experiment_name'] in tempKeys):
 			print("실험명이 이미 존재합니다.")
 		elif (getData['DEVICESTATE'] == 'ready'):
-			# 세팅값과 함께 커맨드 setup을 쏴주고 세팅하기.
+			command = 'setup'
 			firebase.put('/CONTROL', 'SETUP', settings)
-
-			# while(1):
-			#     getData = firebase.get('/CONTROL/DEVICESTATE', None)
-			#     if (getData == 'running'):
-			#         print("실험이 시작되었습니다.")
-			#         break
-		# else:
-		#     print("디바이스가 준비상태가 아닙니다.")
-
-		# 파이어베이스에 쏴주기
-		# 상태 리턴받기
+			firebase.put('/CONTROL', 'COMMAND', command)
 
 	@pyqtSlot()
 	def on_pause_click(self):
@@ -222,7 +211,15 @@ class Form(QtWidgets.QDialog):
 
 	@pyqtSlot()
 	def on_start_click(self):
-		print('test3')
+		deviceState = firebase.get('/CONTROL/DEVICECSTATE', None)
+		print("device state : ", deviceState)
+
+		if (deviceState == 'setup'):
+			command = 'start'
+			firebase.put('/CONTROL', '/COMMAND', command)
+			print("cytowatcher start")
+		else:
+			print("devicec not setup")
 
 	@pyqtSlot()
 	def on_checkchip_click(self):
