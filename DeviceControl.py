@@ -100,10 +100,18 @@ class DeviceControl():
 			self.initFirebase()
 
 		elif (self.command == 'pause'):
-			pass
+			pauseFlag = True
+			deviceState = "pause"
+			firebase.put('/CONTROL', '/DEVICESTATE', deviceState)
+
+			print("#### PAUSE")
 
 		elif (self.command == 'unpause'):
-			pass
+			pauseFlag = False
+			deviceState = "unpause"
+			firebase.put('/CONTROL', '/DEVICESTATE', deviceState)
+
+			print("#### UNPAUSE")
 
 		elif (self.command == 'setup'):
 			print("device setup")
@@ -125,7 +133,7 @@ class DeviceControl():
 		pass
 
 	def saveLog(self, msg):
-		pass
+		firebase.put("/LOG", "/", msg)
 
 if __name__ == "__main__":
 	dc = DeviceControl()

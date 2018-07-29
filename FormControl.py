@@ -207,6 +207,12 @@ class Form(QtWidgets.QDialog):
 
 	@pyqtSlot()
 	def on_pause_click(self):
+		# 토글버튼으로 바꿔줘야됨
+		# pause, unpause
+		if (self.ui.button_pause.getText() == pause)
+		self.ui.button_pause.setText("unpause")
+
+		firebase.put('/CONTROL', '/PAUSE', )
 		print('test2')
 
 	@pyqtSlot()
