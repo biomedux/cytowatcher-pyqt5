@@ -23,7 +23,7 @@ class DeviceControl():
 		self.setupData = {
 			'channels': 0,
 			'freqs': 0,
-			'period': 0,
+			'interval': 0,
 			'deadline': 0,
 			'experiment_name': 0,
 		}
@@ -81,35 +81,41 @@ class DeviceControl():
 		self.pauseFlag = getData['PAUSE']
 		getSetup = getData['SETUP']
 
+		# command별 동작
 		if (self.command == 'checkchip'):
+			print("!! CHECKCHIP command received")
 			result = dwf.checkchip()
 			firebase.put('/CHECKCHIP', '/', result)
 
 		elif (self.command == 'start'):
-			print("## start command received")
+			print("!! START command received")
 			import datetime
 			now = datetime.now()
 			print(now)
 
+			self.deviceState = 'running'
+
 		elif (self.command == 'stop'):
+			print("!! STOP command received")
 			# 사용한거 다 초기화
 			# deviceState ready로 변경
 			# recordState off로 변경
 			# firebase 초기화
 
+			self.deviceState = "stop"
 			self.initFirebase()
 
 		elif (self.command == 'pause'):
-			pauseFlag = True
-			deviceState = "pause"
-			firebase.put('/CONTROL', '/DEVICESTATE', deviceState)
+			print("!! PAUSE command received")
+			self.pauseFlag = True
+			self.deviceState = "pause"
 
-			print("#### PAUSE")
+			print("#### DEVICE PAUSE")
 
 		elif (self.command == 'unpause'):
-			pauseFlag = False
-			deviceState = "unpause"
-			firebase.put('/CONTROL', '/DEVICESTATE', deviceState)
+			print("!! UNPAUSE command received")
+			self.pauseFlag = False
+			self.deviceState = "unpause"
 
 			print("#### UNPAUSE")
 
@@ -118,19 +124,22 @@ class DeviceControl():
 
 			self.setupData = copy.deepcopy(getSetup)
 			self.deviceState = 'setup'
-			firebase.put('/CONTROL', '/DEVICESTATE', self.deviceState)
 			firebase.put('/' + self.setupData['experiment_name'], '/setup', self.setupData)
 
-			print("setup data : ", setupData)
+			print("setup data : ", self.setupData)
 
 		# 작업 완료후 커맨드 초기화
 		self.command = 0
+		firebase.put('/CONTROL', '/DEVICESTATE', self.deviceState)
 		firebase.put('/CONTROL', '/COMMAND', self.command)
 
 		threading.Timer(5, self.monitorCommand).start()
 
 	def measurement(self):
-		pass
+		while (self.pauseFlag == True):
+			pass
+
+		threading.Timer(self.setupData['interval'], self.).start()
 
 	def saveLog(self, msg):
 		firebase.put("/LOG", "/", msg)

@@ -248,7 +248,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Period (minutes)</string>
+          <string>interval (minutes)</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -259,7 +259,7 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="edit_period"/>
+        <widget class="QLineEdit" name="edit_interval"/>
        </item>
        <item row="1" column="0">
         <widget class="QLabel" name="label_4">

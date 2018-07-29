@@ -28,6 +28,7 @@ class Form(QtWidgets.QDialog):
 
 		self.channels = []
 		self.freqs = []
+		self.deviceState = ''
 
 	"""
 	Firebase에 연결하여 firebase 변수에 저장.
@@ -162,13 +163,13 @@ class Form(QtWidgets.QDialog):
 		print("setup button clicked")
 		# 공백 검사하기.
 		# 양식(자연수 등등) 확인하기
-		period = self.ui.edit_period.text()
+		interval = self.ui.edit_interval.text()
 		deadline = self.ui.edit_deadline.text()
 		name = self.ui.edit_name.text()
 
-		if (period == ''):
+		if (interval == ''):
 			# 메세지박스로 바꾸기
-			print("period is empty")
+			print("interval is empty")
 			return
 		elif (deadline == ''):
 			print("deadline is empty")
@@ -188,7 +189,7 @@ class Form(QtWidgets.QDialog):
 		settings = {
 			'channels': str(self.channels),
 			'freqs': str(self.freqs),
-			'period': period,
+			'interval': interval,
 			'deadline': deadline,
 			'experiment_name': name
 		}
@@ -205,19 +206,38 @@ class Form(QtWidgets.QDialog):
 			firebase.put('/CONTROL', 'SETUP', settings)
 			firebase.put('/CONTROL', 'COMMAND', command)
 
+	"""
+	pause 버튼 클릭이벤트.
+	1. 디바이스가 실행중인 경우 퍼즈.
+	2. 실행중이 아닌경우 메세지 띄우고 아무거도 안함.
+	"""
 	@pyqtSlot()
 	def on_pause_click(self):
-		# 토글버튼으로 바꿔줘야됨
-		# pause, unpause
-		if (self.ui.button_pause.getText() == pause)
-		self.ui.button_pause.setText("unpause")
+		deviceState = self.checkDeviceState()
+		pause = ""
 
-		firebase.put('/CONTROL', '/PAUSE', )
-		print('test2')
+		if (deviceState == "running"):
+			if (self.ui.button_pause.text() == "PAUSE"):
+				self.ui.button_pause.setText("UNPAUSE")
+				pause = "PAUSE"
+			else:
+				self.ui.button_pause.setText("PAUSE")
+				pause = "UNPAUSE"
+
+			firebase.put('/CONTROL', '/PAUSE', pause)
+			print("## " + pause + " COMMAND SEND")
+		elif (deviceState != "pause"):
+			msg = QtWidgets.QMessageBox()
+			msg.setWindowTitle("tt")
+			msg.setText("test")
+			msg.setIcon(QtWidgets.QMessageBox.Warning)
+			msg.exec_()
+			# QtWidgets.QMessageBox.about(self, "title", "message")
 
 	@pyqtSlot()
 	def on_start_click(self):
-		deviceState = firebase.get('/CONTROL/DEVICECSTATE', None)
+		# 토글로 바꾸기
+		deviceState = firebase.get('/CONTROL/DEVICESTATE', None)
 		print("device state : ", deviceState)
 
 		if (deviceState == 'setup'):
@@ -225,11 +245,17 @@ class Form(QtWidgets.QDialog):
 			firebase.put('/CONTROL', '/COMMAND', command)
 			print("cytowatcher start")
 		else:
-			print("devicec not setup")
+			print("device not setup")
+
+		print('## ' + command + ' COMMAND SEND')
 
 	@pyqtSlot()
 	def on_checkchip_click(self):
 		print('test4')
+
+	# firebase에서 device state 정보를 받아옴.
+	def checkDeviceState(self):
+		return firebase.get('/CONTROL/DEVICESTATE', None)
 
 if __name__ == "__main__":
 	app = QtWidgets.QApplication(sys.argv)
