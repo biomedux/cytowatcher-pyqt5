@@ -52,7 +52,6 @@ class Form(QtWidgets.QDialog):
 		# CONTROL = {
 		# 	'COMMAND': 0,
 		# 	'DEVICESTATE': 'ready',
-		# 	'RECORDSTATE': 'off',
 		# 	'SETUP': 0,
 		# 	'PAUSE': False,
 		# }
@@ -167,23 +166,31 @@ class Form(QtWidgets.QDialog):
 		deadline = self.ui.edit_deadline.text()
 		name = self.ui.edit_name.text()
 
+		msg = QtWidgets.QMessageBox()
+		msg.setWindowTitle("ERROR!")
+		msg.setText("")
+		msg.setIcon(QtWidgets.QMessageBox.Warning)
+
 		if (interval == ''):
-			# 메세지박스로 바꾸기
 			print("interval is empty")
-			return
+			msg.setText("'interval' is empty!")
 		elif (deadline == ''):
 			print("deadline is empty")
-			return
+			msg.setText("'deadline' is empty!")
 		elif (name == ''):
 			print("experiment name is empty")
-			return
+			msg.setText("'experiment' name is empty!")
 
 		if not self.channels:
 			print('channels is empty')
-			return
+			msg.setText("'channels' is empty!")
 
 		if not self.freqs:
 			print('freqs is empty')
+			msg.setText("'freqs' is empty!")
+
+		if (msg.text() != ""):
+			msg.exec_()
 			return
 
 		settings = {
@@ -228,8 +235,8 @@ class Form(QtWidgets.QDialog):
 			print("## " + pause + " COMMAND SEND")
 		elif (deviceState != "pause"):
 			msg = QtWidgets.QMessageBox()
-			msg.setWindowTitle("tt")
-			msg.setText("test")
+			msg.setWindowTitle("ERROR")
+			msg.setText("Device is not running")
 			msg.setIcon(QtWidgets.QMessageBox.Warning)
 			msg.exec_()
 			# QtWidgets.QMessageBox.about(self, "title", "message")
@@ -240,18 +247,26 @@ class Form(QtWidgets.QDialog):
 		deviceState = firebase.get('/CONTROL/DEVICESTATE', None)
 		print("device state : ", deviceState)
 
-		if (deviceState == 'setup'):
-			command = 'start'
-			firebase.put('/CONTROL', '/COMMAND', command)
-			print("cytowatcher start")
+		if (self.ui.button_start.text() == "START"):
+			if (deviceState == 'setup'):
+				command = 'start'
+				firebase.put('/CONTROL', '/COMMAND', command)
+				print(" ## START command send")
+				self.ui.button_start.setText("STOP")
+			else:
+				print("device not setup")
 		else:
-			print("device not setup")
-
-		print('## ' + command + ' COMMAND SEND')
+			command = 'stop'
+			firebase.put('/CONTROL', '/COMMAND', command)
+			self.ui.button_start.setText("START")
+			print(" ## STOP command send")
 
 	@pyqtSlot()
 	def on_checkchip_click(self):
-		print('test4')
+		command = 'checkchip'
+		firebase.put('/CONTROL', '/COMMAND', command)
+
+		print("## CHECKCHIP COMMAND SEND")
 
 	# firebase에서 device state 정보를 받아옴.
 	def checkDeviceState(self):

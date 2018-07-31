@@ -4,10 +4,9 @@ from firebase.firebase import FirebaseApplication
 
 import threading
 import dwf
+import datetime
 
 import copy
-
-# firebase = FirebaseApplication("https://qttest0513.firebaseio.com/")
 
 class DeviceControl():
 	global firebase
@@ -17,9 +16,7 @@ class DeviceControl():
 		self.tryCount = 0
 		self.command = 0
 		self.deviceState = 0
-		self.recordState = 0
 		self.pauseFlag = False
-		# self.getSetup = {}
 		self.setupData = {
 			'channels': 0,
 			'freqs': 0,
@@ -37,9 +34,9 @@ class DeviceControl():
 	def connectFirebase(self):
 		global firebase
 
+		print("firebase connection")
 		firebase = FirebaseApplication(self.firebase_address)
 		self.tryCount = 0
-		# https://qttest0513.firebaseio.com/
 
 	"""
 	Firebase의 '/CONTROL' 초기화
@@ -53,7 +50,6 @@ class DeviceControl():
 		CONTROL = {
 			'COMMAND': 0,
 			'DEVICESTATE': 'ready',
-			'RECORDSTATE': 'off',
 			'SETUP': 0,
 			'PAUSE': False,
 		}
@@ -63,46 +59,47 @@ class DeviceControl():
 
 
 	def monitorCommand(self):
-		global firebase
-
-		self.tryCount += 1
-		if (self.tryCount > 50):
-			self.connectFirebase()
+		# global firebase
+		# global getData
 
 		try:
 			getData = firebase.get('/CONTROL', None)
 		except Exception as e:
-			print(e, type(e))
-			# self.monitorCommand()
+			print("firebase connection error.. retry")
+			self.connectFirebase()
+			self.monitorCommand()
 
 		self.command = getData['COMMAND']
-		self.deviceState = getData['DEVICESTATE']
-		self.recordState = getData['RECORDSTATE']
 		self.pauseFlag = getData['PAUSE']
 		getSetup = getData['SETUP']
 
-		# command별 동작
+		# command check
 		if (self.command == 'checkchip'):
 			print("!! CHECKCHIP command received")
-			result = dwf.checkchip()
+			result = dwf.checkChip()
 			firebase.put('/CHECKCHIP', '/', result)
+
+		elif (self.command == 'setup'):
+			print("!! SETUP command received")
+
+			self.setupData = copy.deepcopy(getSetup)
+			self.deviceState = 'setup'
+			firebase.put('/' + self.setupData['experiment_name'], '/setup/', self.setupData)
+
+			print("setup data : ", self.setupData)
 
 		elif (self.command == 'start'):
 			print("!! START command received")
-			import datetime
 			now = datetime.now()
 			print(now)
 
 			self.deviceState = 'running'
 
 		elif (self.command == 'stop'):
+			# measurement 중지시키고 파이어베이스 초기화해야됨
 			print("!! STOP command received")
-			# 사용한거 다 초기화
-			# deviceState ready로 변경
-			# recordState off로 변경
-			# firebase 초기화
 
-			self.deviceState = "stop"
+			# self.deviceState = "stop"
 			self.initFirebase()
 
 		elif (self.command == 'pause'):
@@ -119,32 +116,34 @@ class DeviceControl():
 
 			print("#### UNPAUSE")
 
-		elif (self.command == 'setup'):
-			print("device setup")
+		# end of command check
 
-			self.setupData = copy.deepcopy(getSetup)
-			self.deviceState = 'setup'
-			firebase.put('/' + self.setupData['experiment_name'], '/setup', self.setupData)
-
-			print("setup data : ", self.setupData)
-
-		# 작업 완료후 커맨드 초기화
+		# 작업 완료후 커맨드 초기화, deviceState 변경
 		self.command = 0
-		firebase.put('/CONTROL', '/DEVICESTATE', self.deviceState)
-		firebase.put('/CONTROL', '/COMMAND', self.command)
+		try:
+			print(datetime.datetime.now())
+			firebase.put('/CONTROL', '/DEVICESTATE', self.deviceState)
+			firebase.put('/CONTROL', '/COMMAND', self.command)
+		except Exception as e:
+			print("aaaaaaaa@@@@@@@@")
+			print(e)
 
-		threading.Timer(5, self.monitorCommand).start()
+		time.sleep(5)
+		self.monitorCommand()
+
+	# end of monitorCommand function
 
 	def measurement(self):
 		while (self.pauseFlag == True):
 			pass
 
-		threading.Timer(self.setupData['interval'], self.).start()
+		threading.Timer(self.setupData['interval'], self.measurement).start()
 
 	def saveLog(self, msg):
 		firebase.put("/LOG", "/", msg)
 
+# end of DeviceControl Class
+
 if __name__ == "__main__":
 	dc = DeviceControl()
 	dc.monitorCommand()
-	pass
