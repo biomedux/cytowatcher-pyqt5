@@ -46,18 +46,7 @@ class Form(QtWidgets.QDialog):
 	def initFirebase(self):
 		global firebase
 
-		print(" ### Firebase initializing")
 		self.connectFirebase()
-
-		# CONTROL = {
-		# 	'COMMAND': 0,
-		# 	'DEVICESTATE': 'ready',
-		# 	'SETUP': 0,
-		# 	'PAUSE': False,
-		# }
-		# firebase.put('/CONTROL', '/', CONTROL)
-
-		print(" ### Init complete")
 
 	"""
 	Widget들 슬롯 연결
@@ -202,13 +191,17 @@ class Form(QtWidgets.QDialog):
 		}
 		print(settings)
 
-		getData = firebase.get('/CONTROL', None)
+		print("aaaa")
+		getData = firebase.get('/', None)
+		print("aaaa")
 		tempKeys = [str(x) for x in getData.keys()]
+		print("aaaa")
 		print(tempKeys)
 
 		if (settings['experiment_name'] in tempKeys):
-			print("실험명이 이미 존재합니다.")
-		elif (getData['DEVICESTATE'] == 'ready'):
+			msg.setText("실험명이 이미 존재합니다")
+			msg.exec_()
+		elif (getData['CONTROL']['DEVICESTATE'] == 'ready'):
 			command = 'setup'
 			firebase.put('/CONTROL', 'SETUP', settings)
 			firebase.put('/CONTROL', 'COMMAND', command)
